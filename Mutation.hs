@@ -6,9 +6,12 @@ which you will use as the data structure for storing "mutable" data.
 
 -- **YOU MUST ADD ALL FUNCTIONS AND TYPES TO THIS LIST AS YOU CREATE THEM!!**
 module Mutation (
-    Mutable, --get, set, def,
-    Memory, Pointer, inList,
-    getInt, getBool
+    Mutable, get, set, def,
+	(>>>), (>~>), returnVal, runOp,
+    Memory, Pointer, 
+	-- Testing Exports
+	inList, getInt, getBool, makePointer, makePointer2,
+	testMem
     )
     where
 
@@ -53,6 +56,11 @@ testBool = [(3, BoolVal True), (4, BoolVal False)]
 testMem2 = [(1, IntVal 10), (2, IntVal 30), (3, BoolVal True), (4, BoolVal False)]
 testBool2 = [(3, BoolVal True), (4, BoolVal False)]
 
+makePointer :: Integer -> Pointer Integer
+makePointer x = (P x)
+
+makePointer2 :: Integer -> Pointer Bool
+makePointer2 x = (P x)
 
 data StateOp a = StateOp (Memory -> (a, Memory))
 
@@ -86,7 +94,7 @@ class Mutable a where
 	-- Create a new memory location storing a value, returning a new pointer
     -- and the new memory with the new value.
     -- Raise an error if the input Integer is already storing a value.
-    def :: a -> a -> StateOp a -- -> (Pointer a, Memory)
+    def :: Integer -> a -> StateOp a -- -> (Pointer a, Memory)
 
     (>>>) :: StateOp a -> StateOp b -> StateOp b
 	
@@ -95,6 +103,8 @@ class Mutable a where
     returnVal :: a -> StateOp a
 	
 --StateOp (mem -> (a, newMem))
+-- Current Issues:
+-- set and def are returning StateOps instead of correct value
 instance Mutable Integer where
     get (P x) = StateOp (\mem -> 
                         if (inList mem x)
@@ -128,6 +138,43 @@ instance Mutable Integer where
 							
     returnVal x = StateOp (\mem ->
 							(x, mem))
+	
+	
+instance Mutable Bool where
+    get (P x) = StateOp (\mem -> 
+                        if (inList mem x)
+                            then (getBool (lookupA mem x), mem) 
+                            else error "Invalid Memory Address")
+        
+
+    set (P x) newVal = let s = 
+				StateOp (\mem ->
+					if (inList mem x)
+						then (True, updateA mem (x, (BoolVal newVal)))
+						else error "Invalid Memory Address")
+				in s
+
+							
+    def key val = let s =
+					StateOp (\mem ->
+						if (inList mem key)
+						    then error "Memory Already in Use"
+                            else (True, (insertA mem (key, (BoolVal val)))))
+                   in s
+    
+    op1 >>> op2 = StateOp (\mem1 ->
+							let (_, mem2) = runOp op1 mem1
+							in runOp op2 mem2)
+
+    op1 >~> op2 = StateOp (\mem1 ->
+							let (x, mem2) = runOp op1 mem1
+							    newOp = op2 x 
+							in runOp newOp mem2)
+							
+    returnVal x = StateOp (\mem ->
+							(x, mem))	
+	
+	
 	
 	
 -- Code For Original Values (Not StateOps)                      
