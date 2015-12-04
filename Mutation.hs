@@ -62,17 +62,17 @@ testOp = StateOp (\mem -> (5, mem))
 runOp :: StateOp a -> Memory -> (a, Memory)
 runOp (StateOp op) mem = op mem
 
-f :: Integer -> StateOp Integer
-f x =
-    def x 4 >~> \p1 ->
-	def (x + 5) 20 >>>
-	get (P p1) -- This is wrong ...
+-- f :: Integer -> StateOp Integer
+-- f x =
+    -- def x 4 >~> \p1 ->
+	-- def (x + 5) 20 >>>
+	-- get (P p1) -- This is wrong ...
 
-g :: Integer -> StateOp Integer
-g x = 
-    def 1 (x + 4) >~> \p ->
-    get (P p) >~> \y ->
-    returnVal (x * y)	
+-- g :: Integer -> StateOp Integer
+-- g x = 
+    -- def 1 (x + 4) >~> \p ->
+    -- get (P p) >~> \y ->
+    -- returnVal (x * y)	
 
 -- Type class representing a type which can be stored in "Memory".
 class Mutable a where
@@ -96,19 +96,17 @@ class Mutable a where
 	
 --StateOp (mem -> (a, newMem))
 instance Mutable Integer where
-    get (P x) = let s =
-					(\mem -> 
+    get (P x) = StateOp (\mem -> 
                         if (inList mem x)
                             then (getInt (lookupA mem x), mem) 
                             else error "Invalid Memory Address")
-				in s
         
 
     set (P x) newVal = let s = 
 				StateOp (\mem ->
-						if (inList mem x)
-							then (x, updateA mem (x, (IntVal newVal)))
-							else error "Invalid Memory Address")
+					if (inList mem x)
+						then (x, updateA mem (x, (IntVal newVal)))
+						else error "Invalid Memory Address")
 				in s
 
 							
@@ -117,7 +115,7 @@ instance Mutable Integer where
 						if (inList mem key)
 						    then error "Memory Already in Use"
                             else (key, (insertA mem (key, (IntVal val)))))
-                   in (fst s, snd s)
+                   in s
     
     op1 >>> op2 = StateOp (\mem1 ->
 							let (_, mem2) = runOp op1 mem1
