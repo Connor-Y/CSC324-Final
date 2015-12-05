@@ -8,10 +8,10 @@ which you will use as the data structure for storing "mutable" data.
 module Mutation (
     Mutable, get, set, def,
 	(>>>), (>~>), returnVal, runOp,
-    Memory, Pointer, 
+    Memory, Pointer, StateOp,
 	-- Testing Exports
 	inList, getInt, getBool, makePointer, makePointer2,
-	testMem
+	testMem, p1, p2, p3, p4
     )
     where
 
@@ -44,12 +44,16 @@ getInt _ = error "Invalid Type"
 getBool :: Value -> Bool
 getBool (BoolVal x) = x
 getBool _ = error "Invalid Type"
+p1 :: Pointer Integer
+p1 = (P 1)
+p2 :: Pointer Integer
+p2 = (P 2)
 
-bp1 :: Pointer Bool
-bp1 = (P 3)
+p3 :: Pointer Bool
+p3 = (P 3)
 
-bp2 :: Pointer Bool
-bp2 = (P 4)
+p4 :: Pointer Bool
+p4 = (P 4)
 
 testMem = [(1, IntVal 10), (2, IntVal 30), (3, BoolVal True), (4, BoolVal False)]
 testBool = [(3, BoolVal True), (4, BoolVal False)]
@@ -74,7 +78,7 @@ runOp (StateOp op) mem = op mem
 -- f x =
     -- def x 4 >~> \p1 ->
 	-- def (x + 5) 20 >>>
-	-- get (P p1) -- This is wrong ...
+	-- get p1 -- This is wrong ...
 
 -- g :: Integer -> StateOp Integer
 -- g x = 
@@ -82,6 +86,12 @@ runOp (StateOp op) mem = op mem
     -- get (P p) >~> \y ->
     -- returnVal (x * y)	
 
+formatSetResult op mem = let result = runOp op mem
+                         in snd result
+						 
+formatDefResult op mem = let result = runOp op mem
+                         in ((P (fst result)), snd result)
+						 
 -- Type class representing a type which can be stored in "Memory".
 class Mutable a where
     -- Look up a value in memory referred to by a pointer.
@@ -89,12 +99,12 @@ class Mutable a where
 
     -- Change a value in memory referred to by a pointer.
     -- Return the new memory after the update.
-    set :: Pointer a -> a -> StateOp a -- -> Memory
+    set :: Pointer a -> a -> StateOp a 
 	
 	-- Create a new memory location storing a value, returning a new pointer
     -- and the new memory with the new value.
     -- Raise an error if the input Integer is already storing a value.
-    def :: Integer -> a -> StateOp a -- -> (Pointer a, Memory)
+    def :: Integer -> a -> StateOp  a -- -> Should be StateOp (Pointer a)
 
     (>>>) :: StateOp a -> StateOp b -> StateOp b
 	
@@ -150,7 +160,7 @@ instance Mutable Bool where
     set (P x) newVal = let s = 
 				StateOp (\mem ->
 					if (inList mem x)
-						then (True, updateA mem (x, (BoolVal newVal)))
+						then (newVal, updateA mem (x, (BoolVal newVal)))
 						else error "Invalid Memory Address")
 				in s
 
