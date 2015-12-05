@@ -29,6 +29,14 @@ pointerTest n mem =
 			             get (makePointer2 p2)
 			in ((makePointer p1, makePointer2 p2), snd (runOp result mem))
 			
+			
+-- Part 3 Code
+--swap :: Mutable a => Pointer a -> Pointer a -> StateOp ()
+
+--swapCycle :: Mutable a => [Pointer a] -> StateOp ()
+			
+			
+			
 -- Part 1 Code
 -- pointerTest :: Integer -> Memory -> ((Pointer Integer, Pointer Bool), Memory)
 -- pointerTest n mem = let 
