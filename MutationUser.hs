@@ -6,8 +6,9 @@ This file contains code which uses the mutation library found in Mutation.hs
 import Mutation (
     get, set, def, (>>>), (>~>), returnVal, 
 	Mutable, Pointer, Memory, runOp,
+	StateOp,
 	-- Testing Imports
-	makePointer, makePointer2, testMem
+	makePointer, makePointer2, testMem, testMem, p1, p2, p3, p4
     )
 
 -- | Takes a number <n> and memory, and stores two new values in memory:
@@ -28,7 +29,30 @@ pointerTest n mem =
 			             get (makePointer p3) >>>
 			             get (makePointer2 p2)
 			in ((makePointer p1, makePointer2 p2), snd (runOp result mem))
-			
+		
+swap :: Mutable a => Pointer a -> Pointer a -> StateOp a
+swap p1 p2 = let v1 = get p1
+                 v2 = get p2
+                 runOps = v1 >~> \res1 ->
+                     v2 >~> \res2 ->
+                     set p1 res2 >>>
+                     set p2 res1
+             in runOps			
+
+-- swapCycle :: Mutable a => [Pointer a] -> StateOp a
+-- swapCycle lst = StateOp (\mem ->
+                  -- if (length lst < 2)
+                      -- then mem
+				      -- else 
+					      -- let swapped = swap (head lst) (head (tail lst))
+						      -- cycled = map 
+
+cycleMap (x:y:xs) = swap x y : cycleMap (y:xs)		  
+cycleMap (x:y) = swap x y
+cycleMap x = x
+cycleMap _ = error "You Broke It"			  
+
+cycleMap 							  
 -- Part 1 Code
 -- pointerTest :: Integer -> Memory -> ((Pointer Integer, Pointer Bool), Memory)
 -- pointerTest n mem = let 
