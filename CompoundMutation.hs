@@ -5,7 +5,7 @@ which you will use as the data structure for storing "mutable" data.
 -}
 
 -- **YOU MUST ADD ALL FUNCTIONS AND TYPES TO THIS LIST AS YOU CREATE THEM!!**
-module Mutation (
+module CompoundMutation (
     Mutable, get, set, def,
 	(>>>), (>~>), returnVal, runOp,
     Memory, Pointer, StateOp,
@@ -87,6 +87,7 @@ p24 = (P 4)
 testMem = [(1, IntVal 10), (2, IntVal 30), (3, BoolVal True), (4, BoolVal False)]
 testBool = [(3, BoolVal True), (4, BoolVal False)]
 testMem2 = [(1, IntVal 10), (2, IntVal 30), (3, IntVal 50), (4, IntVal 70)]
+
 
 
 
