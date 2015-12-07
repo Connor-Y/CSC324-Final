@@ -90,14 +90,14 @@ testMem2 = [(1, IntVal 10), (2, IntVal 30), (3, IntVal 50), (4, IntVal 70)]
 
 
 
--- f :: StateOp Integer
--- f = def 1 (4 :: Integer) >~> \p -> get p
+f :: StateOp Integer
+f = def 1 4  >~> \p -> get p
 
--- g :: Integer -> StateOp Integer
--- g x = 
-    -- def 1 (x + 4) >~> \p ->
-    -- get (P p) >~> \y ->
-    -- returnVal (x * y)	
+g :: Integer -> StateOp Integer
+g x = 
+    def 1 (x + 4) >~> \p ->
+    get p >~> \y ->
+    returnVal (x * y)	
 
 	
 -- h x = def x x >~> \p1 -> get p1
@@ -107,15 +107,31 @@ testMem2 = [(1, IntVal 10), (2, IntVal 30), (3, IntVal 50), (4, IntVal 70)]
 -- f :: (Integer, Memory)
 -- f = runOp (def 1 4 >~> \p1 -> get p1) []
 
--- Junk Code
--- formatSetResult op mem = let result = runOp op mem
-                         -- in snd result
-						 
--- formatDefResult op mem = let result = runOp op mem
-                         -- in ((P (fst result)), snd result)
 
 
-						 
+
+-- Then Operation. Perform the first StateOp returning only the new Memory.
+-- Perform the second StateOp on the new Memory.
+(>>>) :: StateOp a -> StateOp b -> StateOp b				  
+op1 >>> op2 = StateOp (\mem1 ->
+					    let (_, mem2) = runOp op1 mem1
+					    in runOp op2 mem2)
+
+-- Bind Operation. Perform the first StateOp returning the resultant value 
+-- and Memory. Create a second StateOp using the value from the first one.
+-- Run the second StateOp on the returned Memory.
+(>~>) :: StateOp a -> (a -> StateOp b) -> StateOp b
+op1 >~> op2 = StateOp (\mem1 ->
+                        let (x, mem2) = runOp op1 mem1
+                            newOp = op2 x 
+                        in runOp newOp mem2)
+						
+-- Given a value, create a new StateOp that returns that value without
+-- changing the Memory
+returnVal :: a -> StateOp a						
+returnVal x = StateOp (\mem ->
+						(x, mem))	
+
 -- Type class representing a type which can be stored in "Memory".
 class Mutable a where
     -- Look up a value in memory referred to by a pointer.
@@ -129,20 +145,8 @@ class Mutable a where
     -- and the new memory with the new value.
     -- Raise an error if the input Integer is already storing a value.
     def :: Mutable a =>  Integer -> a -> StateOp (Pointer a) 
-
-	-- Then Operation. Perform the first StateOp returning only the new Memory.
-	-- Perform the second StateOp on the new Memory.
-    (>>>) :: StateOp a -> StateOp b -> StateOp b
 	
-	-- Bind Operation. Perform the first StateOp returning the resultant value 
-	-- and Memory. Create a second StateOp using the value from the first one.
-    -- Run the second StateOp on the returned Memory.
-    (>~>) :: StateOp a -> (a -> StateOp b) -> StateOp b
 	
-	-- Given a value, create a new StateOp that returns that value without
-	-- changing the Memory
-    returnVal :: a -> StateOp a
-
 	-- Given a value, store it in any available Memory and return a Pointer to it,
 	-- as well as, the new Memory
     alloc :: Mutable a => a -> StateOp (Pointer a)
@@ -151,6 +155,7 @@ class Mutable a where
 	-- indicated by the Pointer.
     free :: Mutable a => Pointer a -> StateOp ()
 
+	
 instance Mutable Integer where
     get (P x) = StateOp (\mem -> 
                         if (inList mem x)
@@ -168,20 +173,7 @@ instance Mutable Integer where
 					if (inList mem key)
 						then error "Memory Already in Use"
 						else ((P key), (insertA mem (key, (IntVal val)))))
-
-    
-    op1 >>> op2 = StateOp (\mem1 ->
-							let (_, mem2) = runOp op1 mem1
-							in runOp op2 mem2)
-
-    op1 >~> op2 = StateOp (\mem1 ->
-							let (x, mem2) = runOp op1 mem1
-							    newOp = op2 x 
-							in runOp newOp mem2)
-							
-    returnVal x = StateOp (\mem ->
-							(x, mem))
-	
+					
     alloc newVal = StateOp (\mem ->
 						    let newKey = (maxKey mem 0) + 1
 							in ((P newKey) :: Pointer Integer, (insertA mem (newKey, (IntVal newVal)))))
@@ -208,19 +200,6 @@ instance Mutable Bool where
 					    then error "Memory Already in Use"
 					    else ((P key), (insertA mem (key, (BoolVal val)))))
                   
-    
-    op1 >>> op2 = StateOp (\mem1 ->
-							let (_, mem2) = runOp op1 mem1
-							in runOp op2 mem2)
-
-    op1 >~> op2 = StateOp (\mem1 ->
-							let (x, mem2) = runOp op1 mem1
-							    newOp = op2 x 
-							in runOp newOp mem2)
-							
-    returnVal x = StateOp (\mem ->
-							(x, mem))	
-	
     alloc newVal = StateOp (\mem ->
 					    let newKey = (maxKey mem 0) + 1
 					    in ((P newKey) :: Pointer Bool, (insertA mem (newKey, (BoolVal newVal)))))
