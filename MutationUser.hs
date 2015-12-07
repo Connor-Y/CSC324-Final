@@ -8,7 +8,8 @@ import Mutation (
 	Mutable, Pointer, Memory, runOp,
 	StateOp,
 	-- Testing Imports
-	makePointer, makePointer2, testMem, testMem, p1, p2, p3, p4
+	testMem, testMem, p1, p2, p3, p4,
+	testMem2, p21, p22, p23, p24
     )
 
 -- | Takes a number <n> and memory, and stores two new values in memory:
@@ -17,20 +18,20 @@ import Mutation (
 --   Return the pointer to each stored value, and the new memory.
 --   You may assume these locations are not already used by the memory.
 
-
 pointerTest :: Integer -> Memory -> ((Pointer Integer, Pointer Bool), Memory)
 pointerTest n mem =
 			let p1 = 100
 			    p2 = 500
-			    op1 = def p1 (n + 3)
-			    op2 = def p2 (n > 0)
+			    op1 = def p1 (n + 3) :: StateOp (Pointer Integer)
+			    op2 = def p2 (n > 0) :: StateOp (Pointer Bool)
 			    result = op1 >~> \p3 ->
 			             op2 >~> \p4 ->
-			             get (makePointer p3) >>>
-			             get (makePointer2 p2)
-			in ((makePointer p1, makePointer2 p2), snd (runOp result mem))
-		
-swap :: Mutable a => Pointer a -> Pointer a -> StateOp a
+			             get p3 >>>
+			             get p4
+			in ((p3, p4), snd (runOp result mem))
+
+-- Given two Pointers swap the values indicated by each pointer
+swap :: Mutable a => Pointer a -> Pointer a -> StateOp ()
 swap p1 p2 = let v1 = get p1
                  v2 = get p2
                  runOps = v1 >~> \res1 ->
@@ -39,18 +40,18 @@ swap p1 p2 = let v1 = get p1
                      set p2 res1
              in runOps			
 
--- swapCycle :: Mutable a => [Pointer a] -> StateOp a
--- swapCycle lst = StateOp (\mem ->
-                  -- if (length lst < 2)
-                      -- then mem
-				      -- else 
-					      -- let swapped = swap (head lst) (head (tail lst))
-						      -- cycled = map 
-
-cycleMap (x:y:xs) = swap x y : cycleMap (y:xs)		  
-cycleMap (x:y) = swap x y
-cycleMap x = x
-cycleMap _ = error "You Broke It"			  
+-- which takes a list of pointers p1, ..., pn, with corresponding 
+-- values v1, ..., vn, and sets p1's value to v2, p2's value to v3., etc., 
+-- and pn's value to v1. This function should not change anything if its
+-- argument has length less than 2.
+swapCycle :: Mutable a => [Pointer a] -> StateOp ()
+-- Todo: make work with empty list 
+swapCycle (x:xs) = if ((length xs) < 1)
+                    then get x
+                    else 
+                        swap x (head xs) >>>
+                        swapCycle xs 
+ 
 
 -- Part 1 Code
 -- pointerTest :: Integer -> Memory -> ((Pointer Integer, Pointer Bool), Memory)

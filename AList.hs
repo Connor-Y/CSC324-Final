@@ -7,7 +7,8 @@ module AList (
     AList,
     lookupA,
     insertA,
-    updateA
+    updateA,
+	removeA
     )
     where
 
@@ -48,6 +49,9 @@ updateA alist (key, val) = if (inlist alist key)
 							else alist
 
 
+removeA :: Eq a => AList a b -> a -> AList a b
+removeA alist key = [x| x <- alist, (fst x) /= key]
+	
 
 
 
