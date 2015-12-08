@@ -11,6 +11,7 @@ module Mutation (
     Memory, Pointer, StateOp,
 	-- Weak Exposts
 	makeIntPointer, makeBoolPointer,
+	Pointer(..),
 	-- Testing Exports
 	inList, getInt, getBool,
 	testMem, p1, p2, p3, p4, testMem2, p21, p22, p23, p24,
@@ -168,6 +169,13 @@ class Mutable a where
     -- Raise an error if the input Integer is already storing a value.
     def :: Mutable a =>  Integer -> a -> StateOp (Pointer a) 
 	
+
+-- instance Mutable Person where
+	-- get (P x) =
+	
+	-- set (P x) =
+	
+	-- def (P x) =
 	
 							
 instance Mutable Integer where

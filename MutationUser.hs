@@ -8,7 +8,7 @@ import Mutation (
 	Mutable, Pointer, Memory, runOp,
 	StateOp,
 	-- Weak Imports
-	makeIntPointer, makeBoolPointer,
+	makeIntPointer, makeBoolPointer, Pointer(..),
 	-- Testing Imports
 	testMem, testMem, p1, p2, p3, p4, pList,
 	testMem2, p21, p22, p23, p24
@@ -21,18 +21,25 @@ import Mutation (
 --   You may assume these locations are not already used by the memory.
 
 -- TODO: Make pointerTest return Pointer Integer, Pointer Bool
-pointerTest :: Integer -> Memory -> ((Pointer Bool, Pointer Bool), Memory)
+pointerTest :: Integer -> Memory -> ((Pointer Integer, Pointer Bool), Memory)
 pointerTest n mem =
-			let
-			    p1 = 100
-			    p2 = 500
-			    op1 = (def p1 (n + 3)) :: StateOp (Pointer Integer)
-			    op2 = (def p2 (n > 0)) :: StateOp (Pointer Bool)
-			    result = op1 >~> \p3 ->
-				op2 >~> \p4 ->
-				get p3 >>>
-				get p4
-		    in ((p3, p4), snd (runOp result mem))
+		((((P 100) :: Pointer Integer), ((P 500) :: Pointer Bool)),
+		(snd (runOp ((def 100 (n + 3)) >>> (def 500 (n > 0))) mem)))
+
+-- This was my origin pointer test function. 
+-- The reason I commented it out was because I couldn't set
+-- p3 to be a Pointer Integer. (It was always a Pointer Bool)
+-- pointerTest n mem =
+			-- let
+			    -- p1 = 100
+			    -- p2 = 500
+			    -- op1 = (def p1 (n + 3)) :: StateOp (Pointer Integer)
+			    -- op2 = (def p2 (n > 0)) :: StateOp (Pointer Bool)
+			    -- result = op1 >~> \p3 ->
+				-- op2 >~> \p4 ->
+				-- get (p3 :: Pointer Integer) >>>
+				-- get (p4 :: Pointer Bool)
+		    -- in ((p3, p4), snd (runOp result mem))
 
 			
 
@@ -55,7 +62,7 @@ swapCycle :: Mutable a => [Pointer a] -> StateOp ()
 swapCycle [] = returnVal () :: StateOp ()
 swapCycle [x] = swap x x
 swapCycle (x:xs) = swap x (head xs) >>>
-                   swapCycle xs 
+                   swapCycle xs
 
  
 
