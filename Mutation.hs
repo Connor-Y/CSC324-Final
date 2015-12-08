@@ -9,9 +9,10 @@ module Mutation (
     Mutable, get, set, def,
 	(>>>), (>~>), returnVal, runOp,
     Memory, Pointer, StateOp,
+	Value(..), alloc, free,
 	-- Weak Exposts
 	makeIntPointer, makeBoolPointer,
-	Pointer(..),
+	Pointer(..), StateOp(..),
 	-- Testing Exports
 	inList, getInt, getBool,
 	testMem, p1, p2, p3, p4, testMem2, p21, p22, p23, p24,
