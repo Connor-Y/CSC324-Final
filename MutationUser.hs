@@ -7,8 +7,10 @@ import Mutation (
     get, set, def, (>>>), (>~>), returnVal, 
 	Mutable, Pointer, Memory, runOp,
 	StateOp,
+	-- Weak Imports
+	makeIntPointer, makeBoolPointer,
 	-- Testing Imports
-	testMem, testMem, p1, p2, p3, p4,
+	testMem, testMem, p1, p2, p3, p4, pList,
 	testMem2, p21, p22, p23, p24
     )
 
@@ -18,17 +20,21 @@ import Mutation (
 --   Return the pointer to each stored value, and the new memory.
 --   You may assume these locations are not already used by the memory.
 
-pointerTest :: Integer -> Memory -> ((Pointer Integer, Pointer Bool), Memory)
+-- TODO: Make pointerTest return Pointer Integer, Pointer Bool
+pointerTest :: Integer -> Memory -> ((Pointer Bool, Pointer Bool), Memory)
 pointerTest n mem =
-			let p1 = 100
+			let
+			    p1 = 100
 			    p2 = 500
-			    op1 = def p1 (n + 3) :: StateOp (Pointer Integer)
-			    op2 = def p2 (n > 0) :: StateOp (Pointer Bool)
+			    op1 = (def p1 (n + 3)) :: StateOp (Pointer Integer)
+			    op2 = (def p2 (n > 0)) :: StateOp (Pointer Bool)
 			    result = op1 >~> \p3 ->
-			             op2 >~> \p4 ->
-			             get p3 >>>
-			             get p4
-			in ((p3, p4), snd (runOp result mem))
+				op2 >~> \p4 ->
+				get p3 >>>
+				get p4
+		    in ((p3, p4), snd (runOp result mem))
+
+			
 
 -- Given two Pointers swap the values indicated by each pointer
 swap :: Mutable a => Pointer a -> Pointer a -> StateOp ()
@@ -45,12 +51,12 @@ swap p1 p2 = let v1 = get p1
 -- and pn's value to v1. This function should not change anything if its
 -- argument has length less than 2.
 swapCycle :: Mutable a => [Pointer a] -> StateOp ()
--- Todo: make work with empty list 
-swapCycle (x:xs) = if ((length xs) < 1)
-                    then get x
-                    else 
-                        swap x (head xs) >>>
-                        swapCycle xs 
+-- Swap cycle [] doesn't work TODO:
+swapCycle [] = returnVal () :: StateOp ()
+swapCycle [x] = swap x x
+swapCycle (x:xs) = swap x (head xs) >>>
+                   swapCycle xs 
+
  
 
 -- Part 1 Code

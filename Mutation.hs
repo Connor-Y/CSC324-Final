@@ -9,9 +9,12 @@ module Mutation (
     Mutable, get, set, def,
 	(>>>), (>~>), returnVal, runOp,
     Memory, Pointer, StateOp,
+	-- Weak Exposts
+	makeIntPointer, makeBoolPointer,
 	-- Testing Exports
 	inList, getInt, getBool,
-	testMem, p1, p2, p3, p4, testMem2, p21, p22, p23, p24
+	testMem, p1, p2, p3, p4, testMem2, p21, p22, p23, p24,
+	pList
     )
     where
 
@@ -52,6 +55,11 @@ maxKey alist max = if (null alist)
                                 then maxKey (tail alist) (fst (head alist))
                                 else maxKey (tail alist) max
 
+makeIntPointer :: Integer -> Pointer Integer			
+makeIntPointer x = (P x)				
+
+makeBoolPointer :: Integer -> Pointer Bool			
+makeBoolPointer x = (P x)								
 -- Converts an IntVal into an Integer								
 getInt :: Value -> Integer
 getInt (IntVal x) = x
@@ -88,26 +96,24 @@ testMem = [(1, IntVal 10), (2, IntVal 30), (3, BoolVal True), (4, BoolVal False)
 testBool = [(3, BoolVal True), (4, BoolVal False)]
 testMem2 = [(1, IntVal 10), (2, IntVal 30), (3, IntVal 50), (4, IntVal 70)]
 
+pList :: [Pointer Integer]
+pList = [p21, p22, p23, p24]
 
 
-f :: StateOp Integer
-f = def 1 4  >~> \p -> get p
+f :: Integer -> StateOp Bool
+f x =
+    def 1 4 >~> \p1 ->
+    def 2 True >~> \p2 ->
+    set p1 (x + 5) >>>
+    get p1 >~> \y ->
+    set p2 (y > 3) >>>
+    get p2
 
 g :: Integer -> StateOp Integer
 g x = 
     def 1 (x + 4) >~> \p ->
     get p >~> \y ->
     returnVal (x * y)	
-
-	
--- h x = def x x >~> \p1 -> get p1
-	
--- i = get p2 >~> \v1 -> set p1 v1 >>> set p2 0
-
--- f :: (Integer, Memory)
--- f = runOp (def 1 4 >~> \p1 -> get p1) []
-
-
 
 
 -- Then Operation. Perform the first StateOp returning only the new Memory.
@@ -132,6 +138,22 @@ returnVal :: a -> StateOp a
 returnVal x = StateOp (\mem ->
 						(x, mem))	
 
+-- Given a value, store it in any available Memory and return a Pointer to it,
+-- as well as, the new Memory
+alloc :: Mutable a => a -> StateOp (Pointer a)
+alloc newVal = StateOp (\mem ->
+               let newKey = (maxKey mem 0) + 1
+	           in runOp (def newKey newVal) mem) 
+
+
+
+
+-- Given a Pointer to something in Memory, return a new Memory without the item
+-- indicated by the Pointer.
+free :: Mutable a => Pointer a -> StateOp ()
+free (P x) = StateOp (\mem ->
+						((), removeA mem x))
+							
 -- Type class representing a type which can be stored in "Memory".
 class Mutable a where
     -- Look up a value in memory referred to by a pointer.
@@ -147,15 +169,7 @@ class Mutable a where
     def :: Mutable a =>  Integer -> a -> StateOp (Pointer a) 
 	
 	
-	-- Given a value, store it in any available Memory and return a Pointer to it,
-	-- as well as, the new Memory
-    alloc :: Mutable a => a -> StateOp (Pointer a)
-	
-	-- Given a Pointer to something in Memory, return a new Memory without the item
-	-- indicated by the Pointer.
-    free :: Mutable a => Pointer a -> StateOp ()
-
-	
+							
 instance Mutable Integer where
     get (P x) = StateOp (\mem -> 
                         if (inList mem x)
@@ -173,40 +187,25 @@ instance Mutable Integer where
 					if (inList mem key)
 						then error "Memory Already in Use"
 						else ((P key), (insertA mem (key, (IntVal val)))))
-					
-    alloc newVal = StateOp (\mem ->
-						    let newKey = (maxKey mem 0) + 1
-							in ((P newKey) :: Pointer Integer, (insertA mem (newKey, (IntVal newVal)))))
-	
-    free (P x) = StateOp (\mem ->
-						    ((), removeA mem x))
-	
+						
 instance Mutable Bool where
     get (P x) = StateOp (\mem -> 
                         if (inList mem x)
                             then (getBool (lookupA mem x), mem) 
                             else error "Invalid Memory Address")
-        
 
     set (P x) newVal = 
 				StateOp (\mem ->
 					if (inList mem x)
 						then ((), updateA mem (x, (BoolVal newVal)))
-						else error "Invalid Memory Address")
-							
+						else error "Invalid Memory Address")					
     def key val = 
 			    StateOp (\mem ->
 				    if (inList mem key)
 					    then error "Memory Already in Use"
 					    else ((P key), (insertA mem (key, (BoolVal val)))))
-                  
-    alloc newVal = StateOp (\mem ->
-					    let newKey = (maxKey mem 0) + 1
-					    in ((P newKey) :: Pointer Bool, (insertA mem (newKey, (BoolVal newVal)))))
-	
-    free (P x) = StateOp (\mem ->
-						    ((), removeA mem x))
-							
+
+						
 -- Code For Original Values (Not StateOps)                      
 -- instance Mutable Integer where
     -- get mem (P x) =  if (inList mem x)
