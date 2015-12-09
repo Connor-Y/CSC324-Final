@@ -73,6 +73,13 @@ getBool :: Value -> Bool
 getBool (BoolVal x) = x
 getBool _ = error "Invalid Type"
 
+-- Get the Integer from a person struct
+getPersonInt :: Person -> Integer
+getPersonInt (Person x y) = x
+
+-- Get the Bool from a person struct
+getPersonBool :: Person -> Bool
+getPersonBool (Person x y) = y
 p1 :: Pointer Integer
 p1 = (P 1)
 p2 :: Pointer Integer
@@ -102,22 +109,6 @@ testMem2 = [(1, IntVal 10), (2, IntVal 30), (3, IntVal 50), (4, IntVal 70)]
 pList :: [Pointer Integer]
 pList = [p21, p22, p23, p24]
 
-
--- f :: Integer -> StateOp Bool
--- f x =
-    -- def 1 4 >~> \p1 ->
-    -- def 2 True >~> \p2 ->
-    -- set p1 (x + 5) >>>
-    -- get p1 >~> \y ->
-    -- set p2 (y > 3) >>>
-    -- get p2
-
--- g :: Integer -> StateOp Integer
--- g x = 
-    -- def 1 (x + 4) >~> \p ->
-    -- get p >~> \y ->
-    -- returnVal (x * y)	
-
 -- A type representing a person with two attributes:
 -- age and whether they are a student or not.
 data Person = Person Integer Bool deriving Show
@@ -135,42 +126,69 @@ isStudent (PerP x y) = (P y) :: Pointer Bool
 pp1 :: Pointer Person
 pp1 = (PerP 1 3)
 
--- -- Then Operation. Perform the first StateOp returning only the new Memory.
--- -- Perform the second StateOp on the new Memory.
--- (>>>) :: StateOp a -> StateOp b -> StateOp b				  
--- op1 >>> op2 = StateOp (\mem1 ->
-					    -- let (_, mem2) = runOp op1 mem1
-					    -- in runOp op2 mem2)
+-- Then Operation. Perform the first StateOp returning only the new Memory.
+-- Perform the second StateOp on the new Memory.
+(>>>) :: StateOp a -> StateOp b -> StateOp b				  
+op1 >>> op2 = StateOp (\mem1 ->
+					    let (_, mem2) = runOp op1 mem1
+					    in runOp op2 mem2)
 
--- -- Bind Operation. Perform the first StateOp returning the resultant value 
--- -- and Memory. Create a second StateOp using the value from the first one.
--- -- Run the second StateOp on the returned Memory.
--- (>~>) :: StateOp a -> (a -> StateOp b) -> StateOp b
--- op1 >~> op2 = StateOp (\mem1 ->
-                        -- let (x, mem2) = runOp op1 mem1
-                            -- newOp = op2 x 
-                        -- in runOp newOp mem2)
+-- Bind Operation. Perform the first StateOp returning the resultant value 
+-- and Memory. Create a second StateOp using the value from the first one.
+-- Run the second StateOp on the returned Memory.
+(>~>) :: StateOp a -> (a -> StateOp b) -> StateOp b
+op1 >~> op2 = StateOp (\mem1 ->
+                        let (x, mem2) = runOp op1 mem1
+                            newOp = op2 x 
+                        in runOp newOp mem2)
 						
--- -- Given a value, create a new StateOp that returns that value without
--- -- changing the Memory
--- returnVal :: a -> StateOp a						
--- returnVal x = StateOp (\mem ->
-						-- (x, mem))	
+-- Given a value, create a new StateOp that returns that value without
+-- changing the Memory
+returnVal :: a -> StateOp a						
+returnVal x = StateOp (\mem ->
+						(x, mem))	
 
--- -- Given a value, store it in any available Memory and return a Pointer to it,
--- -- as well as, the new Memory
--- -- alloc :: Mutable a => a -> StateOp (Pointer a)
--- -- alloc newVal = StateOp (\mem ->
-               -- -- let newKey = (maxKey mem 0) + 1
-	           -- -- in runOp (def newKey newVal) mem) 
+-- Given a value, store it in any available Memory and return a Pointer to it,
+-- as well as, the new Memory
+-- alloc :: Mutable a => a -> StateOp (Pointer a)
+-- alloc newVal = StateOp (\mem ->
+               -- let newKey = (maxKey mem 0) + 1
+	           -- in runOp (def newKey newVal) mem) 
 
 
--- -- Given a Pointer to something in Memory, return a new Memory without the item
--- -- indicated by the Pointer.
--- -- free :: Mutable a => Pointer a -> StateOp ()
--- -- free (P x) = StateOp (\mem ->
-						-- -- ((), removeA mem x))
-							
+-- Given a Pointer to something in Memory, return a new Memory without the item
+-- indicated by the Pointer.
+free :: Mutable a => Pointer a -> StateOp ()
+free (P x) = StateOp (\mem ->
+						((), removeA mem x))
+
+						
+personTest :: Person -> Integer -> StateOp (Integer, Bool, Person)
+personTest person x =
+    -- not using alloc, but we could
+    def 1 person >~> \personPointer ->
+    get (personPointer @@ age) >~> \oldAge ->
+    set (personPointer @@ age) x >>>
+    get (personPointer @@ isStudent) >~> \stu ->
+    get (personPointer @@ age) >~> \newAge ->
+    set personPointer (Person (2 * newAge) (not stu)) >>>
+    get personPointer >~> \newPerson ->
+    get (personPointer @@ isStudent) >~> \newStu ->
+    returnVal (oldAge, newStu, newPerson)
+	
+--pT1 :: Person -> Integer -> StateOp (
+pT1 person x =
+    def 1 person >~> \pp ->
+    get (pp @@ age) >~> \oldage ->
+	set (pp @@ age) x >>>
+	get (pp @@ isStudent) >~> \stu ->
+	get (pp @@ age) >~> \newAge ->
+	set pp (Person (2 * newAge) (not stu)) >>>
+	get pp
+	
+per1 :: Person
+per1 = Person 12 True
+--formatPersonDef :: Pointer Integer -> Pointer Bool -> Pointer Person  						
 -- Type class representing a type which can be stored in "Memory".
 class Mutable a where
     -- Look up a value in memory referred to by a pointer.
@@ -178,23 +196,39 @@ class Mutable a where
 
     -- Change a value in memory referred to by a pointer.
     -- Return the new memory after the update.
-    -- set :: Mutable a => Pointer a -> a -> StateOp () 
+    set :: Mutable a => Pointer a -> a -> StateOp () 
 	
 	-- Create a new memory location storing a value, returning a new pointer
     -- and the new memory with the new value.
     -- Raise an error if the input Integer is already storing a value.
-    -- def :: Mutable a =>  Integer -> Person -> StateOp (Pointer a) 
+    def :: Mutable a => Integer -> a -> StateOp (Pointer a) 
 	
 	-- Person = Person Integer Bool	
 instance Mutable Person where
     -- Might need to error check this
     get (P x) = get (P x)
-	                    
+	
+    get (PerP x y) = StateOp (\mem ->
+					    if (not ((inList mem x) && (inList mem y)))
+						    then error "Invalid Memory Address"
+							else ((Person (getInt (lookupA mem x))
+							(getBool (lookupA mem y))), mem))
+	
+    set (P x) newVal = set (P x) newVal  
+	
+    set (PerP x y) (Person a b) = set (P x) a >>> set (P y) b
+	
+    def x (Person a b) = StateOp (\mem ->
+					    if (inList mem x)
+						    then error "Memory Already in User"
+							else 
+							    let 
+								    mem2 = (insertA mem (x, (IntVal a)))
+								    freeMem = ((maxKey mem2 0) + 1)
+								    mem3 = (insertA mem2 (freeMem, (BoolVal b)))
+							    in ((PerP x freeMem), mem3))
 
-    -- set (P x) newVal = StateOp(\mem -> 
-	                    -- set x newVal)  
-                   	
-				
+	
 instance Mutable Integer where
     get (P x) = StateOp (\mem -> 
                         if (inList mem x)
@@ -202,16 +236,16 @@ instance Mutable Integer where
                             else error "Invalid Memory Address")
         
 
-    -- set (P x) newVal = StateOp (\mem ->
-						-- if (inList mem x)
-							-- then ((), updateA mem (x, (IntVal newVal)))
-							-- else error "Invalid Memory Address")
+    set (P x) newVal = StateOp (\mem ->
+						if (inList mem x)
+							then ((), updateA mem (x, (IntVal newVal)))
+							else error "Invalid Memory Address")
 
 							
-    -- def key val = StateOp (\mem ->
-					-- if (inList mem key)
-						-- then error "Memory Already in Use"
-						-- else ((P key), (insertA mem (key, (IntVal val)))))
+    def key val = StateOp (\mem ->
+					if (inList mem key)
+						then error "Memory Already in Use"
+						else ((P key), (insertA mem (key, (IntVal val)))))
 						
 instance Mutable Bool where
     get (P x) = StateOp (\mem -> 
@@ -219,16 +253,16 @@ instance Mutable Bool where
                             then (getBool (lookupA mem x), mem) 
                             else error "Invalid Memory Address")
 
-    -- set (P x) newVal = 
-				-- StateOp (\mem ->
-					-- if (inList mem x)
-						-- then ((), updateA mem (x, (BoolVal newVal)))
-						-- else error "Invalid Memory Address")					
-    -- def key val = 
-			    -- StateOp (\mem ->
-				    -- if (inList mem key)
-					    -- then error "Memory Already in Use"
-					    -- else ((P key), (insertA mem (key, (BoolVal val)))))
+    set (P x) newVal = 
+				StateOp (\mem ->
+					if (inList mem x)
+						then ((), updateA mem (x, (BoolVal newVal)))
+						else error "Invalid Memory Address")					
+    def key val = 
+			    StateOp (\mem ->
+				    if (inList mem key)
+					    then error "Memory Already in Use"
+					    else ((P key), (insertA mem (key, (BoolVal val)))))
 
 						
 -- Code For Original Values (Not StateOps)                      
