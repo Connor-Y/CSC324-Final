@@ -3,6 +3,11 @@
 This file contains code which uses the mutation library found in Mutation.hs
 -}
 
+module MutationUser (
+    pointerTest, swap, swapCycle
+
+) where
+
 import Mutation (
     get, set, def, (>>>), (>~>), returnVal, 
 	Mutable, Pointer, Memory, runOp,
