@@ -10,14 +10,9 @@ module MutationUser (
 
 import Mutation (
     get, set, def, (>>>), (>~>), returnVal, 
-	Mutable, Pointer, Memory, runOp,
-	StateOp,
-	-- Weak Imports
+	Mutable, Pointer, Memory, runOp, StateOp,
 	makeIntPointer, makeBoolPointer, Pointer(..),
 	StateOp(..),
-	-- Testing Imports
-	testMem, testMem, p1, p2, p3, p4, pList,
-	testMem2, p21, p22, p23, p24
     )
 
 -- | Takes a number <n> and memory, and stores two new values in memory:
@@ -25,8 +20,6 @@ import Mutation (
 --   - the boolean (n > 0) at location 500
 --   Return the pointer to each stored value, and the new memory.
 --   You may assume these locations are not already used by the memory.
-
--- TODO: Make pointerTest return Pointer Integer, Pointer Bool
 pointerTest :: Integer -> StateOp(Pointer Integer, Pointer Bool)
 pointerTest n = StateOp (\mem ->
 		(((P 100) :: Pointer Integer, (P 500) :: Pointer Bool),
@@ -64,13 +57,14 @@ swap p1 p2 = let v1 = get p1
 -- and pn's value to v1. This function should not change anything if its
 -- argument has length less than 2.
 swapCycle :: Mutable a => [Pointer a] -> StateOp ()
--- Swap cycle [] doesn't work TODO:
 swapCycle [] = returnVal () :: StateOp ()
 swapCycle [x] = swap x x
 swapCycle (x:xs) = swap x (head xs) >>>
                    swapCycle xs
 
- 
+-- swapCycle on an empty list gives ambiguous error
+-- according to piazza the explicit definition (swapCycle ([] :: Pointer Integer))
+-- is supposed to fix this, however that merely gives me a compile error.
 
 -- Part 1 Code
 -- pointerTest :: Integer -> Memory -> ((Pointer Integer, Pointer Bool), Memory)

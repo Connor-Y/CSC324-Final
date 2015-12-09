@@ -12,7 +12,7 @@ module AList (
     )
     where
 
-
+-- Association List or Dictionary
 type AList a b = [(a, b)]
 
 
@@ -31,6 +31,7 @@ insertA alist (key, val) = if (inlist alist key)
 							then alist
 							else (key, val):alist
 
+-- Returns true iff the key is in the AList 
 inlist :: Eq a => AList a b -> a -> Bool
 inlist alist key = 	if (null alist)
 						then False

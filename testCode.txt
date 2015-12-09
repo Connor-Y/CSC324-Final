@@ -1,0 +1,74 @@
+CSC 324 Racket Test Code
+
+-- Mutation
+p1 :: Pointer Integer
+p1 = (P 1)
+p2 :: Pointer Integer
+p2 = (P 2)
+
+p3 :: Pointer Bool
+p3 = (P 3)
+
+p4 :: Pointer Bool
+p4 = (P 4)
+
+p21 :: Pointer Integer
+p21 = (P 1)
+
+p22 :: Pointer Integer
+p22 = (P 2)
+
+p23 :: Pointer Integer
+p23 = (P 3)
+
+p24 :: Pointer Integer
+p24 = (P 4)
+testMem = [(1, IntVal 10), (2, IntVal 30), (3, BoolVal True), (4, BoolVal False)]
+testBool = [(3, BoolVal True), (4, BoolVal False)]
+testMem2 = [(1, IntVal 10), (2, IntVal 30), (3, IntVal 50), (4, IntVal 70)]
+
+pList :: [Pointer Integer]
+pList = [p21, p22, p23, p24]
+
+
+f :: Integer -> StateOp Bool
+f x =
+    def 1 4 >~> \p1 ->
+    def 2 True >~> \p2 ->
+    set p1 (x + 5) >>>
+    get p1 >~> \y ->
+    set p2 (y > 3) >>>
+    get p2
+
+g :: Integer -> StateOp Integer
+g x = 
+    def 1 (x + 4) >~> \p ->
+    get p >~> \y ->
+    returnVal (x * y)	
+
+---
+From Compound Mutation
+personTest :: Person -> Integer -> StateOp (Integer, Bool, Person)
+personTest person x =
+    -- not using alloc, but we could
+    def 1 person >~> \personPointer ->
+    get (personPointer @@ age) >~> \oldAge ->
+    set (personPointer @@ age) x >>>
+    get (personPointer @@ isStudent) >~> \stu ->
+    get (personPointer @@ age) >~> \newAge ->
+    set personPointer (Person (2 * newAge) (not stu)) >>>
+    get personPointer >~> \newPerson ->
+    get (personPointer @@ isStudent) >~> \newStu ->
+    returnVal (oldAge, newStu, newPerson)
+	
+pT1 person x =
+    def 1 person >~> \pp ->
+    get (pp @@ age) >~> \oldage ->
+	set (pp @@ age) x >>>
+	get (pp @@ isStudent) >~> \stu ->
+	get (pp @@ age) >~> \newAge ->
+	set pp (Person (2 * newAge) (not stu)) >>>
+	get pp
+	
+per1 :: Person
+per1 = Person 12 True

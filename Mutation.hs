@@ -10,13 +10,8 @@ module Mutation (
 	(>>>), (>~>), returnVal, runOp,
     Memory, Pointer, StateOp,
 	Value(..), alloc, free,
-	-- Weak Exposts
 	makeIntPointer, makeBoolPointer,
 	Pointer(..), StateOp(..),
-	-- Testing Exports
-	inList, getInt, getBool,
-	testMem, p1, p2, p3, p4, testMem2, p21, p22, p23, p24,
-	pList
     )
     where
 
@@ -32,7 +27,7 @@ type Memory = AList Integer Value
 
 -- A type representing a pointer to a location in memory.
 data Pointer a = P Integer deriving Show
-
+ 
 data StateOp a = StateOp (Memory -> (a, Memory))
 
 -- Runs a StateOp with a given Memory
@@ -57,11 +52,14 @@ maxKey alist max = if (null alist)
                                 then maxKey (tail alist) (fst (head alist))
                                 else maxKey (tail alist) max
 
+-- Turns an Integer into a Pointer Integer
 makeIntPointer :: Integer -> Pointer Integer			
 makeIntPointer x = (P x)				
 
+-- Turns an Integer into a Pointer Bool
 makeBoolPointer :: Integer -> Pointer Bool			
-makeBoolPointer x = (P x)								
+makeBoolPointer x = (P x)		
+						
 -- Converts an IntVal into an Integer								
 getInt :: Value -> Integer
 getInt (IntVal x) = x
@@ -71,52 +69,6 @@ getInt _ = error "Invalid Type"
 getBool :: Value -> Bool
 getBool (BoolVal x) = x
 getBool _ = error "Invalid Type"
-
-p1 :: Pointer Integer
-p1 = (P 1)
-p2 :: Pointer Integer
-p2 = (P 2)
-
-p3 :: Pointer Bool
-p3 = (P 3)
-
-p4 :: Pointer Bool
-p4 = (P 4)
-
-p21 :: Pointer Integer
-p21 = (P 1)
-
-p22 :: Pointer Integer
-p22 = (P 2)
-
-p23 :: Pointer Integer
-p23 = (P 3)
-
-p24 :: Pointer Integer
-p24 = (P 4)
-testMem = [(1, IntVal 10), (2, IntVal 30), (3, BoolVal True), (4, BoolVal False)]
-testBool = [(3, BoolVal True), (4, BoolVal False)]
-testMem2 = [(1, IntVal 10), (2, IntVal 30), (3, IntVal 50), (4, IntVal 70)]
-
-pList :: [Pointer Integer]
-pList = [p21, p22, p23, p24]
-
-
-f :: Integer -> StateOp Bool
-f x =
-    def 1 4 >~> \p1 ->
-    def 2 True >~> \p2 ->
-    set p1 (x + 5) >>>
-    get p1 >~> \y ->
-    set p2 (y > 3) >>>
-    get p2
-
-g :: Integer -> StateOp Integer
-g x = 
-    def 1 (x + 4) >~> \p ->
-    get p >~> \y ->
-    returnVal (x * y)	
-
 
 -- Then Operation. Perform the first StateOp returning only the new Memory.
 -- Perform the second StateOp on the new Memory.
@@ -148,14 +100,12 @@ alloc newVal = StateOp (\mem ->
 	           in runOp (def newKey newVal) mem) 
 
 
-
-
 -- Given a Pointer to something in Memory, return a new Memory without the item
 -- indicated by the Pointer.
 free :: Mutable a => Pointer a -> StateOp ()
 free (P x) = StateOp (\mem ->
 						((), removeA mem x))
-							
+
 -- Type class representing a type which can be stored in "Memory".
 class Mutable a where
     -- Look up a value in memory referred to by a pointer.
@@ -169,15 +119,6 @@ class Mutable a where
     -- and the new memory with the new value.
     -- Raise an error if the input Integer is already storing a value.
     def :: Mutable a =>  Integer -> a -> StateOp (Pointer a) 
-	
-
--- instance Mutable Person where
-	-- get (P x) =
-	
-	-- set (P x) =
-	
-	-- def (P x) =
-	
 							
 instance Mutable Integer where
     get (P x) = StateOp (\mem -> 
